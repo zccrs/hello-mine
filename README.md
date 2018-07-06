@@ -1,2 +1,2 @@
-# mine-sweep-game
+# hello-mine
 A mine sweep game
