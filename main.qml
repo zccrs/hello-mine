@@ -2,10 +2,11 @@ import QtQuick 2.6
 import QtQuick.Window 2.2
 import QtQuick.Dialogs 1.2
 import QtQuick.Controls 2.4
+import QtQuick.Controls.Material 2.2
 
 import "GameCommon.js" as Common
 
-Window {
+ApplicationWindow {
     id: rootWindow
 
     property var mineMap
@@ -20,6 +21,9 @@ Window {
     width: 640
     height: 480
     title: "Hello Mine(点击翻开土地, [长按/右键/Ctrl+左键][标记/取消标记])"
+
+    Material.theme: Material.System
+    Material.accent: Material.BlueGrey
 
     function beginGame(safeIndex) {
         mineMap = Common.createMineMap(mineMapWidth, mineMapHeight, mineCount, safeIndex);
@@ -151,9 +155,10 @@ Window {
         }
 
         Button {
+            Material.accent: Material.Green
+
+            highlighted: true;
             anchors.verticalCenter: parent.verticalCenter
-            width: 50
-            height: 24
             text: "restart"
             onClicked: {
                 gameState = Common.GameStateEnum.NormalState;
