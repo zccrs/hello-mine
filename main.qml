@@ -30,12 +30,14 @@ Window {
 
         gameState = Common.GameStateEnum.GameingState;
         markedMineCount = 0;
+        gameStartTime = 0;
     }
 
     function resetGame() {
         gameState = Common.GameStateEnum.NormalState;
         rootWindow.mineMap = undefined;
         markedMineCount = 0;
+        gameStartTime = 0;
     }
 
     MessageDialog {
