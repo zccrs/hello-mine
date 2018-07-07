@@ -13,7 +13,7 @@ Window {
     visible: true
     width: 640
     height: 480
-    title: "Hello Mine(点击翻开土地, 长按标记/取消标记)"
+    title: "Hello Mine(点击翻开土地, [长按/右键/Ctrl+左键][标记/取消标记])"
 
     MessageDialog {
         id: messageDialog
@@ -38,6 +38,49 @@ Window {
         id: buttonRow
 
         anchors.horizontalCenter: parent.horizontalCenter
+
+        Text {
+            property int gameStartTime: 0
+
+            Timer {
+                id: gameTimer
+                running: gameState === Common.GameStateEnum.GameingState
+                interval: 1000
+                repeat: true
+
+                onTriggered: {
+                    parent.gameStartTime++;
+                }
+
+                onRunningChanged: {
+                    if (running) {
+                        parent.gameStartTime = 0;
+                    }
+                }
+            }
+
+            text: {
+                var string = "⏲:";
+                var minute = Math.floor(gameStartTime / 60);
+                var hour = Math.floor(minute / 60);
+                var second = gameStartTime % 60;
+
+                if (hour > 0) {
+                    string += hour + "小时";
+                }
+
+                if (minute > 0) {
+                    string += minute + "分钟";
+                }
+
+                string += second + "秒"
+
+                return string;
+            }
+
+            anchors.verticalCenter: parent.verticalCenter
+            font.pixelSize: 20
+        }
 
         RadioButton {
             property int columns: 10
@@ -86,6 +129,9 @@ Window {
         }
 
         Button {
+            anchors.verticalCenter: parent.verticalCenter
+            width: 50
+            height: 24
             text: "restart"
             onClicked: {
                 gameState = Common.GameStateEnum.NormalState;
@@ -136,14 +182,17 @@ Window {
                 function getNeighbors() {
                     var x = index % mineGrid.columns;
                     var y = Math.floor(index / mineGrid.columns);
+
+                    console.log(x, y, mineGrid.columns, mineGrid.rows)
+
                     var list = [(y - 1) * mineGrid.columns + x - 1, //0: left top
                                 (y - 1) * mineGrid.columns + x, //1: top
                                 (y - 1) * mineGrid.columns + x + 1, //2: right top
-                                x + 1, //3: right
+                                index + 1, //3: right
                                 (y + 1) * mineGrid.columns + x + 1, //4: right bottom
                                 (y + 1) * mineGrid.columns + x, //5: bottom
                                 (y + 1) * mineGrid.columns + x - 1, //6: left bottom
-                                x - 1];//7: left
+                                index - 1];//7: left
 
                     if (y === 0) {
                         list[0] = list[1] = list[2] = undefined;
@@ -179,7 +228,7 @@ Window {
                     mineMapValue = Common.getMineMapValueByIndex(mineGrid.mineMap, mineGrid.columns, index)
                     cleared = true;
 
-                    if (mineMapValue < 0) {
+                    if (mineMapValue === -1) {
                         rootWindow.gameState = Common.GameStateEnum.OverState;
                         messageDialog.open();
                     } else if (mineMapValue === 0) {
@@ -196,6 +245,34 @@ Window {
                 function reset() {
                     cleared = false;
                     mineMapValue = 0;
+                }
+
+                function turnOver() {
+                    if (mineMapValue === -2 || cleared)
+                        return;
+
+                    if (!mineGrid.mineMap) {
+                        mineGrid.mineMap = Common.createMineMap(mineGrid.columns, mineGrid.rows, Math.floor(mineGrid.columns * mineGrid.rows * 0.2), index);
+
+                        //                            for (var i in mineGrid.mineMap) {
+                        //                                console.log(i, ": ", mineGrid.mineMap[i]);
+                        //                            }
+
+                        rootWindow.gameState = Common.GameStateEnum.GameingState;
+                    }
+
+                    clear();
+                }
+
+                function toggleMark() {
+                    if (cleared)
+                        return;
+
+                    if (mineMapValue === -2) {
+                        mineMapValue = 0;
+                    } else {
+                        mineMapValue = -2;
+                    }
                 }
 
                 Connections {
@@ -216,37 +293,22 @@ Window {
                     color: "white"
                     font.pixelSize: parent.height * 2 / 3.0
                     text: parent.mineMapValue > 0 ? parent.mineMapValue : ""
-//                    text: mineGrid.mineMap ? Common.getMineMapValueByIndex(mineGrid.mineMap, mineGrid.columns, index) : ""
+                    //                    text: mineGrid.mineMap ? Common.getMineMapValueByIndex(mineGrid.mineMap, mineGrid.columns, index) : ""
                 }
 
                 MouseArea {
                     anchors.fill: parent
+                    acceptedButtons: Qt.RightButton | Qt.LeftButton
                     onClicked:  {
-                        if (parent.mineMapValue === -2 || parent.cleared)
-                            return;
-
-                        if (!mineGrid.mineMap) {
-                            mineGrid.mineMap = Common.createMineMap(mineGrid.columns, mineGrid.rows, Math.floor(mineGrid.columns * mineGrid.rows * 0.2), index);
-
-//                            for (var i in mineGrid.mineMap) {
-//                                console.log(i, ": ", mineGrid.mineMap[i]);
-//                            }
-
-                            rootWindow.gameState = Common.GameStateEnum.GameingState;
+                        if (mouse.button === Qt.RightButton || mouse.modifiers === Qt.ControlModifier) {
+                            parent.toggleMark();
+                        } else if (mouse.button === Qt.LeftButton) {
+                            parent.turnOver();
                         }
-
-                        parent.clear();
                     }
 
                     onPressAndHold: {
-                        if (parent.cleared)
-                            return;
-
-                        if (parent.mineMapValue === -2) {
-                            parent.mineMapValue = 0;
-                        } else {
-                            parent.mineMapValue = -2;
-                        }
+                        parent.toggleMark();
                     }
                 }
             }
